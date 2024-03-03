@@ -14,7 +14,6 @@ def get_quotes_by_author(name_string: str) -> str:
     result = "-------------------\n"
     authors = Author.objects(fullname__istartswith=name_string)
     for author in authors:
-        # print(authors[0].to_mongo().to_dict())
         quotes = Quote.objects(author=author)
         result += f"{author.fullname}'s quotes:\n"
         for quote in quotes:
