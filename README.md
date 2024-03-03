@@ -22,9 +22,9 @@
      ```
      python3 main.py -f somefile.json
      ```
-- To get all quotes of given author (e.g. Albert Einstein) use `-n/--name` (case-insensitive, two words = use quotes):
+- To get all quotes of given author (e.g. Albert Einstein) use `-n/--name` (case-insensitive, if two words use single or double quotation marks):
      ```
-     python3 main.py -n "albert Einstein" 
+     python3 main.py -n 'albert Einstein' 
      ```
      or you can specify just a few first letter of a name:
      ```
