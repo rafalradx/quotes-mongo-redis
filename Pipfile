@@ -8,6 +8,7 @@ pymongo = {extras = ["srv"], version = "==3.11"}
 mongoengine = "*"
 redis = "*"
 redis-lru = "*"
+thefuzz = "*"
 
 [dev-packages]
 

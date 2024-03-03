@@ -3,12 +3,13 @@ import json
 import connect_mongo
 import redis
 from redis_lru import RedisLRU
+from thefuzz import fuzz
 
 redis_client = redis.StrictRedis(host="localhost", port=6379, password=None)
 cache = RedisLRU(redis_client)
 
 
-@cache
+# @cache
 def get_quotes_by_author(name_string: str) -> str:
     result = "-------------------\n"
     authors = Author.objects(fullname__istartswith=name_string)
@@ -21,7 +22,7 @@ def get_quotes_by_author(name_string: str) -> str:
     return result.removesuffix("\n")
 
 
-@cache
+# @cache
 def get_quotes_by_tags(tags: list[str]) -> str:
     if len(tags) > 1:
         quotes = Quote.objects(tags__name__in=tags)
@@ -33,10 +34,19 @@ def get_quotes_by_tags(tags: list[str]) -> str:
     return result.removesuffix("\n")
 
 
-@cache
+# @cache
 def author_from_mongo(name: str) -> Author:
-    author = Author.objects(fullname=name)
+    author = Author.objects(fullname__iexact=name)
     return author[0]
+
+
+def author_closest_match(name_query: str) -> Author:
+    authors = Author.objects()
+    names = [author.fullname for author in authors]
+    scores = [fuzz.partial_ratio(name_query, name) for name in names]
+    scores_sorted = sorted(zip(scores, names), key=lambda x: x[0], reverse=True)
+    best_match = scores_sorted[0][1]
+    return Author.objects(fullname__iexact=best_match)[0]
 
 
 def json_to_mongo(filename: str) -> None:
@@ -62,13 +72,29 @@ def json_to_mongo(filename: str) -> None:
             print("JSON file with quotes data")
             for quote in data:
                 # author must be present in DB before his quote can be added
-                author = author_from_mongo(quote["author"])
-                # print(isinstance(author, Author))
-                quote_mod = Quote(
-                    quote=quote["quote"],
-                    author=author,
-                    tags=[Tag(name=tagname) for tagname in quote["tags"]],
-                ).save()
+                try:
+                    author = author_from_mongo(quote["author"])
+                    quote_mod = Quote(
+                        quote=quote["quote"],
+                        author=author,
+                        tags=[Tag(name=tagname) for tagname in quote["tags"]],
+                    ).save()
+                except IndexError:
+                    quote_s = quote["quote"][:20]
+                    print(
+                        f"[!] The author: '{quote['author']}' of a quote: {quote_s}...\" not found in DB\n[!] Looking for a closest match"
+                    )
+                    author = author_closest_match(quote["author"])
+                    print(f"[!] Best match for '{quote['author']}' found")
+                    print(
+                        f"[!] Assigning quote to '{author.fullname}' -- please verify"
+                    )
+                    quote_mod = Quote(
+                        quote=quote["quote"],
+                        author=author,
+                        tags=[Tag(name=tagname) for tagname in quote["tags"]],
+                    ).save()
+
             print(f"{len(data)} quotes added to mongo DB")
         else:
             print("Wrong JSON file structure")
