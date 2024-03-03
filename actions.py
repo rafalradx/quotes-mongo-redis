@@ -9,7 +9,7 @@ redis_client = redis.StrictRedis(host="localhost", port=6379, password=None)
 cache = RedisLRU(redis_client)
 
 
-# @cache
+@cache
 def get_quotes_by_author(name_string: str) -> str:
     result = "-------------------\n"
     authors = Author.objects(fullname__istartswith=name_string)
@@ -22,7 +22,7 @@ def get_quotes_by_author(name_string: str) -> str:
     return result.removesuffix("\n")
 
 
-# @cache
+@cache
 def get_quotes_by_tags(tags: list[str]) -> str:
     if len(tags) > 1:
         quotes = Quote.objects(tags__name__in=tags)
@@ -34,12 +34,13 @@ def get_quotes_by_tags(tags: list[str]) -> str:
     return result.removesuffix("\n")
 
 
-# @cache
+@cache
 def author_from_mongo(name: str) -> Author:
     author = Author.objects(fullname__iexact=name)
     return author[0]
 
 
+@cache
 def author_closest_match(name_query: str) -> Author:
     authors = Author.objects()
     names = [author.fullname for author in authors]
